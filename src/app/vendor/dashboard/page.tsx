@@ -19,7 +19,32 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        const img = new Image();
+        img.src = reader.result as string;
+        img.onload = () => {
+          // Client-side compression using Canvas
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800; // Reduce width to 800px max
+          
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > MAX_WIDTH) {
+            const scaleSize = MAX_WIDTH / img.width;
+            width = MAX_WIDTH;
+            height = img.height * scaleSize;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Compress to JPEG with 70% quality (0.7) to save space
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          setImagePreview(compressedDataUrl);
+        };
       };
       reader.readAsDataURL(file);
     }
