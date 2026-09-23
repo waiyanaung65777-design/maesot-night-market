@@ -158,10 +158,113 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
   );
 }
 
+// Modal for Editing Store Profile
+function EditStoreModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const img = new Image();
+        img.src = reader.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          let width = img.width;
+          let height = img.height;
+          if (width > MAX_WIDTH) {
+            const scaleSize = MAX_WIDTH / img.width;
+            width = MAX_WIDTH;
+            height = img.height * scaleSize;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          setImagePreview(canvas.toDataURL('image/jpeg', 0.7));
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        setImagePreview(null);
+        onClose();
+      }, 2000);
+    }, 1500);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative animate-scale-up max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-zinc-100 sticky top-0 bg-white z-10">
+          <h3 className="text-xl font-semibold tracking-tight text-zinc-900">Edit Store Profile</h3>
+          <button type="button" onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
+            <X className="w-5 h-5 text-zinc-500" />
+          </button>
+        </div>
+        {success ? (
+          <div className="p-12 flex flex-col items-center justify-center text-center">
+            <CheckCircle2 className="w-16 h-16 text-emerald-500 mb-4 animate-scale-up" />
+            <h4 className="text-xl font-semibold text-zinc-900 mb-2">Profile Updated!</h4>
+            <p className="text-sm text-zinc-500">Your store information has been saved successfully.</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Store Photo / Logo</label>
+              <div className="relative w-full h-40 border-2 border-dashed border-zinc-200 rounded-2xl bg-zinc-50 flex flex-col items-center justify-center overflow-hidden hover:bg-zinc-100 transition-colors cursor-pointer group">
+                <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
+                {imagePreview ? (
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover animate-fade-in" />
+                ) : (
+                  <div className="flex flex-col items-center text-zinc-400 group-hover:text-zinc-600 transition-colors pointer-events-none">
+                    <UploadCloud className="w-8 h-8 mb-2" />
+                    <span className="text-sm font-medium">Click or drag store photo</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Store Name</label>
+              <input type="text" required placeholder="e.g. Mae Sot BBQ Master" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Store Description / Zone</label>
+              <input type="text" placeholder="e.g. Zone A, Stall #04" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+            </div>
+            <div className="pt-4 border-t border-zinc-100 flex justify-end gap-3 sticky bottom-0 bg-white">
+              <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-colors">Cancel</button>
+              <button type="submit" disabled={loading} className="px-8 py-3 bg-zinc-900 text-white text-sm font-semibold rounded-xl hover:bg-zinc-800 transition-colors shadow-lg shadow-zinc-900/20 disabled:opacity-50">
+                {loading ? 'Saving...' : 'Save Profile'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function VendorDashboard() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -194,8 +297,9 @@ export default function VendorDashboard() {
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-zinc-200 selection:text-zinc-900">
       
-      {/* Modal */}
+      {/* Modals */}
       <AddItemModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <EditStoreModal isOpen={isStoreModalOpen} onClose={() => setIsStoreModalOpen(false)} />
 
       {/* Dashboard Top Nav */}
       <header className="bg-white border-b border-zinc-200 px-6 py-4 sticky top-0 z-30">
@@ -268,7 +372,10 @@ export default function VendorDashboard() {
               <Settings className="w-5 h-5" />
             </div>
             <h3 className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mb-1">Settings</h3>
-            <span className="text-sm font-medium text-blue-600 hover:underline">
+            <span 
+              onClick={() => setIsStoreModalOpen(true)}
+              className="text-sm font-medium text-blue-600 hover:underline"
+            >
               Edit Store Profile &rarr;
             </span>
           </div>
