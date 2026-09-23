@@ -3,38 +3,51 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Store, Plus, Package, Settings, LogOut, X, CheckCircle2 } from 'lucide-react';
+import { Store, Plus, Package, Settings, LogOut, X, CheckCircle2, UploadCloud, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 
 // Simple modal for adding items
 function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate API delay
+    // Simulate API delay (Uploading Image + Saving DB)
     setTimeout(() => {
       setLoading(false);
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
+        setImagePreview(null);
         onClose();
       }, 2000);
-    }, 1000);
+    }, 1500);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative animate-scale-up">
+      <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative animate-scale-up max-h-[90vh] overflow-y-auto">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-zinc-100">
+        <div className="flex items-center justify-between p-6 border-b border-zinc-100 sticky top-0 bg-white z-10">
           <h3 className="text-xl font-semibold tracking-tight text-zinc-900">Add New Item</h3>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
+          <button type="button" onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
             <X className="w-5 h-5 text-zinc-500" />
           </button>
         </div>
@@ -47,8 +60,31 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
             <p className="text-sm text-zinc-500">The new item has been added to your menu.</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
             
+            {/* Image Upload Area */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Food Photo</label>
+              <div className="relative w-full h-40 border-2 border-dashed border-zinc-200 rounded-2xl bg-zinc-50 flex flex-col items-center justify-center overflow-hidden hover:bg-zinc-100 transition-colors cursor-pointer group">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleImageChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" 
+                />
+                
+                {imagePreview ? (
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover animate-fade-in" />
+                ) : (
+                  <div className="flex flex-col items-center text-zinc-400 group-hover:text-zinc-600 transition-colors pointer-events-none">
+                    <UploadCloud className="w-8 h-8 mb-2" />
+                    <span className="text-sm font-medium">Click or drag photo here</span>
+                    <span className="text-xs mt-1 opacity-70">JPG, PNG up to 5MB</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Food Name (MM)</label>
@@ -81,12 +117,12 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
               <textarea rows={3} placeholder="Brief description of the food..." className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"></textarea>
             </div>
 
-            <div className="pt-4 border-t border-zinc-100 flex justify-end gap-3">
+            <div className="pt-4 border-t border-zinc-100 flex justify-end gap-3 sticky bottom-0 bg-white">
               <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-colors">
                 Cancel
               </button>
               <button type="submit" disabled={loading} className="px-8 py-3 bg-zinc-900 text-white text-sm font-semibold rounded-xl hover:bg-zinc-800 transition-colors shadow-lg shadow-zinc-900/20 disabled:opacity-50">
-                {loading ? 'Saving...' : 'Save Item'}
+                {loading ? 'Uploading...' : 'Save Item'}
               </button>
             </div>
 
