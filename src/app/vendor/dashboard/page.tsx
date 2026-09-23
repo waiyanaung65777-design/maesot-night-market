@@ -79,9 +79,9 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
         setImagePreview(null);
         onClose();
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding item:", error);
-      alert("Failed to save item. Make sure database tables are created.");
+      alert(`Failed to save item. Error: ${error?.message || error}`);
     } finally {
       setLoading(false);
     }
@@ -242,9 +242,9 @@ function EditStoreModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
         setImagePreview(null);
         onClose();
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving profile:", error);
-      alert("Failed to save profile. Make sure database tables are created.");
+      alert(`Failed to save profile. Error: ${error?.message || error}`);
     } finally {
       setLoading(false);
     }
