@@ -9,14 +9,23 @@ interface HeroBannerProps {
 
 export default function HeroBanner({ currentLang }: HeroBannerProps) {
   return (
-    <section className="px-4 lg:px-8 pt-10 pb-6 bg-white">
-      <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
+    <section className="relative px-4 lg:px-8 pt-12 pb-10 bg-white overflow-hidden">
+      
+      {/* --- Moving Color Mesh Gradient Background --- */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div className="absolute top-0 -left-4 w-72 h-72 bg-amber-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div className="absolute top-0 -right-4 w-72 h-72 bg-orange-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-rose-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+      </div>
+      {/* --------------------------------------------- */}
+
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col items-center text-center">
         
-        <span className="px-3 py-1 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-bold tracking-[0.15em] uppercase mb-6 animate-fade-in-up">
-          No Sign-in Required
+        <span className="px-4 py-1.5 bg-white/60 backdrop-blur-md text-zinc-600 rounded-full text-[10px] font-bold tracking-[0.15em] uppercase border border-zinc-200/50 shadow-sm mb-8 animate-fade-in-up">
+          🔥 No Sign-in Required
         </span>
 
-        <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-zinc-900 leading-[1.1] mb-6 animate-fade-in-up delay-100">
+        <h2 className="text-4xl md:text-5xl lg:text-7xl font-semibold tracking-tight text-zinc-900 leading-[1.1] mb-6 animate-fade-in-up delay-100 drop-shadow-sm">
           {currentLang === 'mm' ? (
             <>မဲဆောက်ညဈေး<br/><span className="text-zinc-400">အရသာများ</span></>
           ) : currentLang === 'th' ? (
@@ -26,21 +35,21 @@ export default function HeroBanner({ currentLang }: HeroBannerProps) {
           )}
         </h2>
 
-        <p className="text-zinc-500 text-sm md:text-base max-w-xl mx-auto leading-relaxed mb-10 animate-fade-in-up delay-200 font-light">
+        <p className="text-zinc-600 text-sm md:text-base max-w-xl mx-auto leading-relaxed mb-10 animate-fade-in-up delay-200 font-medium">
           {currentLang === 'mm'
             ? 'မဲဆောက်ညဈေးမှ နာမည်ကြီး အကင်၊ မာလာရှမ်းကောနှင့် ထိုင်းအစားအစာများကို လွတ်လပ်စွာ ဝင်ရောက်ကြည့်ရှုလိုက်ပါ။'
             : 'Curated street food, charcoal grills, and refreshing delicacies from the heart of the Asian Highway Night Bazaar.'}
         </p>
 
         {/* Minimal Info Bar */}
-        <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-zinc-500 font-medium animate-fade-in-up delay-300">
+        <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-zinc-500 font-semibold animate-fade-in-up delay-300 bg-white/50 backdrop-blur-md px-6 py-3 rounded-2xl border border-zinc-100 shadow-sm">
           <div className="flex items-center gap-2">
-            <MapPin className="w-3.5 h-3.5 text-zinc-400" />
+            <MapPin className="w-4 h-4 text-orange-400" />
             <span>Mae Sot, Tak</span>
           </div>
           <div className="w-1 h-1 bg-zinc-300 rounded-full hidden sm:block"></div>
           <div className="flex items-center gap-2">
-            <Clock className="w-3.5 h-3.5 text-zinc-400" />
+            <Clock className="w-4 h-4 text-emerald-400" />
             <span>17:00 – 23:30 Daily</span>
           </div>
         </div>
