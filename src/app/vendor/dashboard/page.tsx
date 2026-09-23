@@ -50,19 +50,41 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate API delay (Uploading Image + Saving DB)
-    setTimeout(() => {
-      setLoading(false);
+    
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Not logged in");
+
+      const target = e.target as any;
+      const newItem = {
+        vendor_id: userData.user.id,
+        name_mm: target[1].value, // 0 is image input, 1 is name_mm
+        name_en: target[2].value,
+        price: parseFloat(target[3].value),
+        category: target[4].value,
+        description: target[5].value,
+        image_url: imagePreview,
+        is_available: true
+      };
+
+      const { error } = await supabase.from('menu_items').insert([newItem]);
+      if (error) throw error;
+
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
         setImagePreview(null);
         onClose();
       }, 2000);
-    }, 1500);
+    } catch (error) {
+      console.error("Error adding item:", error);
+      alert("Failed to save item. Make sure database tables are created.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -194,18 +216,38 @@ function EditStoreModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Not logged in");
+
+      const target = e.target as any;
+      const profile = {
+        id: userData.user.id,
+        store_name: target[1].value, // 0 is image input
+        store_zone: target[2].value,
+        store_image_url: imagePreview,
+        is_open: true
+      };
+
+      const { error } = await supabase.from('vendors').upsert([profile]);
+      if (error) throw error;
+
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
         setImagePreview(null);
         onClose();
       }, 2000);
-    }, 1500);
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      alert("Failed to save profile. Make sure database tables are created.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
