@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Store, Chrome, Mail, ArrowRight, Loader2 } from 'lucide-react';
+import { Store, LogIn, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function VendorLogin() {
@@ -89,7 +89,7 @@ export default function VendorLogin() {
           disabled={isLoading}
           className="w-full flex items-center justify-center gap-3 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-900 font-medium py-3.5 rounded-xl transition-all duration-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed mb-8"
         >
-          <Chrome className="w-5 h-5 text-zinc-700" />
+          <LogIn className="w-5 h-5 text-zinc-700" />
           <span>Continue with Google</span>
         </button>
 
