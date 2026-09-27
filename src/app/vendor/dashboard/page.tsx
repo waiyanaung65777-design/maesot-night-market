@@ -154,10 +154,21 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
 }
 
 // Modal for Editing Store Profile
-function EditStoreModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function EditStoreModal({ isOpen, onClose, initialData }: { isOpen: boolean; onClose: () => void; initialData?: any }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [storeName, setStoreName] = useState('');
+  const [storeZone, setStoreZone] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setStoreName(initialData?.store_name || '');
+      setStoreZone(initialData?.store_zone || '');
+      setImagePreview(initialData?.store_image_url || null);
+      setSuccess(false);
+    }
+  }, [isOpen, initialData]);
 
   if (!isOpen) return null;
 
@@ -197,11 +208,10 @@ function EditStoreModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not logged in");
 
-      const target = e.target as any;
       const profile = {
         id: userData.user.id,
-        store_name: target[1].value, // 0 is image input
-        store_zone: target[2].value,
+        store_name: storeName,
+        store_zone: storeZone,
         store_image_url: imagePreview,
         is_open: true
       };
@@ -212,7 +222,6 @@ function EditStoreModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
-        setImagePreview(null);
         onClose();
       }, 2000);
     } catch (error: any) {
@@ -256,11 +265,11 @@ function EditStoreModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Store Name</label>
-              <input type="text" required placeholder="e.g. Mae Sot BBQ Master" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              <input type="text" required value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="e.g. Mae Sot BBQ Master" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Store Description / Zone</label>
-              <input type="text" placeholder="e.g. Zone A, Stall #04" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              <input type="text" value={storeZone} onChange={(e) => setStoreZone(e.target.value)} placeholder="e.g. Zone A, Stall #04" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
             </div>
             <div className="pt-4 border-t border-zinc-100 flex justify-end gap-3 sticky bottom-0 bg-white">
               <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-colors">Cancel</button>
@@ -340,7 +349,7 @@ export default function VendorDashboard() {
       
       {/* Modals */}
       <AddItemModal isOpen={isModalOpen} onClose={handleModalClose} />
-      <EditStoreModal isOpen={isStoreModalOpen} onClose={handleModalClose} />
+      <EditStoreModal isOpen={isStoreModalOpen} onClose={handleModalClose} initialData={storeInfo} />
 
       {/* Dashboard Top Nav */}
       <header className="bg-white border-b border-zinc-200 px-6 py-4 sticky top-0 z-30">
