@@ -30,7 +30,6 @@ export default function Home() {
       const { data, error } = await supabase
         .from('menu_items')
         .select('*, vendors(store_name, store_zone, store_image_url, is_open)')
-        .eq('is_available', true)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -39,7 +38,6 @@ export default function Home() {
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('menu_items')
           .select('*')
-          .eq('is_available', true)
           .order('created_at', { ascending: false });
 
         if (fallbackError) {

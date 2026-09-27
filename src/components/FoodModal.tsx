@@ -35,6 +35,8 @@ export default function FoodModal({ item, currentLang, onClose }: FoodModalProps
   const stallName = displayItem.vendors?.store_name || 'Mae Sot Market';
   const stallZone = displayItem.vendors?.store_zone || '';
   const priceThb = displayItem.price || 0;
+  const isOutOfStock = displayItem.is_available === false;
+  const isStoreClosed = displayItem.vendors?.is_open === false;
 
   return (
     <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
@@ -56,9 +58,25 @@ export default function FoodModal({ item, currentLang, onClose }: FoodModalProps
           </button>
           
           {displayItem.image_url ? (
-            <img src={displayItem.image_url} alt={title} className="w-full h-full object-cover animate-fade-in" />
+            <img src={displayItem.image_url} alt={title} className={`w-full h-full object-cover animate-fade-in ${isOutOfStock || isStoreClosed ? 'brightness-75' : ''}`} />
           ) : (
             <div className="text-zinc-300 font-medium">No Image</div>
+          )}
+
+          {/* Status Badge */}
+          {isOutOfStock && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="bg-zinc-900/80 backdrop-blur-sm text-white text-sm font-black uppercase tracking-widest px-5 py-2.5 rounded-full shadow-xl border border-white/10">
+                {currentLang === 'mm' ? 'ကုန်ပြီ / Out of Stock' : 'Out of Stock'}
+              </span>
+            </div>
+          )}
+          {!isOutOfStock && isStoreClosed && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="bg-amber-600/90 backdrop-blur-sm text-white text-sm font-black uppercase tracking-widest px-5 py-2.5 rounded-full shadow-xl">
+                {currentLang === 'mm' ? 'ယနေ့ ပိတ်သည်' : 'Today Closed'}
+              </span>
+            </div>
           )}
           
           <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-[10px] font-bold text-zinc-900 shadow-sm uppercase tracking-wider">
