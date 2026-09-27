@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Store, Plus, Package, Settings, LogOut, X, CheckCircle2, UploadCloud, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 
-// Simple modal for adding items
+// Modal for Adding Items
 function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -22,28 +22,20 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
         const img = new Image();
         img.src = reader.result as string;
         img.onload = () => {
-          // Client-side compression using Canvas
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800; // Reduce width to 800px max
-          
+          const MAX_WIDTH = 800;
           let width = img.width;
           let height = img.height;
-          
           if (width > MAX_WIDTH) {
             const scaleSize = MAX_WIDTH / img.width;
             width = MAX_WIDTH;
             height = img.height * scaleSize;
           }
-
           canvas.width = width;
           canvas.height = height;
-          
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-          
-          // Compress to JPEG with 70% quality (0.7) to save space
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          setImagePreview(compressedDataUrl);
+          setImagePreview(canvas.toDataURL('image/jpeg', 0.7));
         };
       };
       reader.readAsDataURL(file);
@@ -90,16 +82,12 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm animate-fade-in">
       <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative animate-scale-up max-h-[90vh] overflow-y-auto">
-        
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-zinc-100 sticky top-0 bg-white z-10">
           <h3 className="text-xl font-semibold tracking-tight text-zinc-900">Add New Item</h3>
           <button type="button" onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
             <X className="w-5 h-5 text-zinc-500" />
           </button>
         </div>
-
-        {/* Form */}
         {success ? (
           <div className="p-12 flex flex-col items-center justify-center text-center">
             <CheckCircle2 className="w-16 h-16 text-emerald-500 mb-4 animate-scale-up" />
@@ -108,18 +96,10 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            
-            {/* Image Upload Area */}
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Food Photo</label>
               <div className="relative w-full h-40 border-2 border-dashed border-zinc-200 rounded-2xl bg-zinc-50 flex flex-col items-center justify-center overflow-hidden hover:bg-zinc-100 transition-colors cursor-pointer group">
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleImageChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" 
-                />
-                
+                <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
                 {imagePreview ? (
                   <img src={imagePreview} alt="Preview" className="w-full h-full object-cover animate-fade-in" />
                 ) : (
@@ -131,7 +111,6 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
                 )}
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Food Name (MM)</label>
@@ -142,7 +121,6 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
                 <input type="text" placeholder="e.g. Tom Yum" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Price (Baht)</label>
@@ -158,21 +136,16 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
                 </select>
               </div>
             </div>
-
             <div className="space-y-1.5">
               <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Description</label>
               <textarea rows={3} placeholder="Brief description of the food..." className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"></textarea>
             </div>
-
             <div className="pt-4 border-t border-zinc-100 flex justify-end gap-3 sticky bottom-0 bg-white">
-              <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-colors">
-                Cancel
-              </button>
+              <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-colors">Cancel</button>
               <button type="submit" disabled={loading} className="px-8 py-3 bg-zinc-900 text-white text-sm font-semibold rounded-xl hover:bg-zinc-800 transition-colors shadow-lg shadow-zinc-900/20 disabled:opacity-50">
                 {loading ? 'Uploading...' : 'Save Item'}
               </button>
             </div>
-
           </form>
         )}
       </div>
@@ -307,7 +280,27 @@ export default function VendorDashboard() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
+  const [storeInfo, setStoreInfo] = useState<any>(null);
+  const [menuItems, setMenuItems] = useState<any[]>([]);
   const router = useRouter();
+
+  const fetchData = async (userId: string) => {
+    // Fetch store profile
+    const { data: vendorData } = await supabase
+      .from('vendors')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    if (vendorData) setStoreInfo(vendorData);
+
+    // Fetch menu items
+    const { data: itemsData } = await supabase
+      .from('menu_items')
+      .select('*')
+      .eq('vendor_id', userId)
+      .order('created_at', { ascending: false });
+    if (itemsData) setMenuItems(itemsData);
+  };
 
   useEffect(() => {
     const checkUser = async () => {
@@ -316,12 +309,18 @@ export default function VendorDashboard() {
         router.push('/vendor/login');
       } else {
         setUser(session.user);
+        await fetchData(session.user.id);
       }
       setLoading(false);
     };
-
     checkUser();
   }, [router]);
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setIsStoreModalOpen(false);
+    if (user) fetchData(user.id);
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -340,18 +339,24 @@ export default function VendorDashboard() {
     <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-zinc-200 selection:text-zinc-900">
       
       {/* Modals */}
-      <AddItemModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-      <EditStoreModal isOpen={isStoreModalOpen} onClose={() => setIsStoreModalOpen(false)} />
+      <AddItemModal isOpen={isModalOpen} onClose={handleModalClose} />
+      <EditStoreModal isOpen={isStoreModalOpen} onClose={handleModalClose} />
 
       {/* Dashboard Top Nav */}
       <header className="bg-white border-b border-zinc-200 px-6 py-4 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-zinc-900 text-white rounded-xl flex items-center justify-center">
-              <Store className="w-5 h-5" />
+            <div className="w-10 h-10 bg-zinc-900 text-white rounded-xl flex items-center justify-center overflow-hidden">
+              {storeInfo?.store_image_url ? (
+                <img src={storeInfo.store_image_url} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <Store className="w-5 h-5" />
+              )}
             </div>
             <div>
-              <h1 className="text-lg font-semibold tracking-tight leading-none">Vendor Portal</h1>
+              <h1 className="text-lg font-semibold tracking-tight leading-none">
+                {storeInfo?.store_name || 'Vendor Portal'}
+              </h1>
               <p className="text-[10px] text-zinc-400 font-medium uppercase tracking-widest mt-1">MaeSot Market</p>
             </div>
           </div>
@@ -377,7 +382,7 @@ export default function VendorDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-10 gap-4 animate-fade-in-up">
           <div>
             <h2 className="text-3xl font-semibold tracking-tight">Overview</h2>
-            <p className="text-zinc-500 text-sm mt-1">ဆိုင်၏ အရောင်းစာရင်းနှင့် ဟင်းလျာများကို စီမံပါ</p>
+            <p className="text-zinc-500 text-sm mt-1">Manage your store menu and items</p>
           </div>
           <button 
             onClick={() => setIsModalOpen(true)}
@@ -395,7 +400,7 @@ export default function VendorDashboard() {
               <Package className="w-5 h-5" />
             </div>
             <h3 className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mb-1">Active Items</h3>
-            <p className="text-3xl font-semibold">0</p>
+            <p className="text-3xl font-semibold">{menuItems.length}</p>
           </div>
           
           <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md cursor-pointer">
@@ -404,8 +409,8 @@ export default function VendorDashboard() {
             </div>
             <h3 className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mb-1">Store Status</h3>
             <div className="flex items-center gap-2 mt-2">
-              <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
-              <p className="text-sm font-medium">Open / รับออเดอร์</p>
+              <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${storeInfo?.is_open !== false ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
+              <p className="text-sm font-medium">{storeInfo?.is_open !== false ? 'Open / ဖွင့်သည်' : 'Closed / ပိတ်သည်'}</p>
             </div>
           </div>
 
@@ -423,23 +428,53 @@ export default function VendorDashboard() {
           </div>
         </div>
 
-        {/* Empty State for Items */}
-        <div className="bg-white rounded-[2.5rem] border border-zinc-100 p-12 text-center animate-fade-in-up delay-200">
-          <div className="w-20 h-20 bg-zinc-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Package className="w-8 h-8 text-zinc-300" />
+        {/* Items List */}
+        {menuItems.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-fade-in-up delay-200">
+            {menuItems.map((item) => (
+              <div key={item.id} className="bg-white rounded-3xl border border-zinc-100 overflow-hidden shadow-sm hover:shadow-md transition-all group flex flex-col">
+                <div className="relative h-48 bg-zinc-100 overflow-hidden shrink-0">
+                  {item.image_url ? (
+                    <img src={item.image_url} alt={item.name_mm} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-zinc-300">No Image</div>
+                  )}
+                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-zinc-900 shadow-sm">
+                    ฿{item.price}
+                  </div>
+                </div>
+                <div className="p-5 flex-grow flex flex-col">
+                  <h3 className="font-semibold text-lg text-zinc-900 truncate mb-1">{item.name_mm}</h3>
+                  {item.name_en && <p className="text-xs text-zinc-500 truncate mb-3">{item.name_en}</p>}
+                  
+                  <div className="flex items-center justify-between pt-3 border-t border-zinc-50 mt-auto">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-zinc-100 text-zinc-600 rounded-md">
+                      {item.category || 'Food'}
+                    </span>
+                    <button className="text-xs font-semibold text-blue-600 hover:underline">Edit</button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-          <h3 className="text-xl font-semibold text-zinc-900 mb-2">No items yet</h3>
-          <p className="text-zinc-500 text-sm max-w-md mx-auto mb-8">
-            ဟင်းလျာများ မတင်ရသေးပါ။ သင့်ဆိုင်၏ Menu များကို စတင်ထည့်သွင်းပြီး Customer များထံ ရောင်းချလိုက်ပါ။
-          </p>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-900 px-6 py-3 rounded-full text-sm font-semibold hover:bg-zinc-200 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create First Item</span>
-          </button>
-        </div>
+        ) : (
+          <div className="bg-white rounded-[2.5rem] border border-zinc-100 p-12 text-center animate-fade-in-up delay-200">
+            <div className="w-20 h-20 bg-zinc-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Package className="w-8 h-8 text-zinc-300" />
+            </div>
+            <h3 className="text-xl font-semibold text-zinc-900 mb-2">No items yet</h3>
+            <p className="text-zinc-500 text-sm max-w-md mx-auto mb-8">
+              ဟင်းလျာများ မတင်ရသေးပါ။ သင့်ဆိုင်၏ Menu များကို စတင်ထည့်သွင်းပြီး Customer များထံ ရောင်းချလိုက်ပါ။
+            </p>
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-900 px-6 py-3 rounded-full text-sm font-semibold hover:bg-zinc-200 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create First Item</span>
+            </button>
+          </div>
+        )}
 
       </main>
     </div>
