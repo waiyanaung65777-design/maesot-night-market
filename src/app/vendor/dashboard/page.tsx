@@ -3,14 +3,39 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Store, Plus, Package, Settings, LogOut, X, CheckCircle2, UploadCloud, Image as ImageIcon } from 'lucide-react';
-import Link from 'next/link';
+import { Store, Plus, Package, Settings, LogOut, X, CheckCircle2, UploadCloud, Trash2, Edit3, AlertCircle } from 'lucide-react';
 
-// Modal for Adding Items
-function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+// Modal for Adding / Editing Items
+function ManageItemModal({ isOpen, onClose, editingItem, onRefresh }: { isOpen: boolean; onClose: () => void; editingItem?: any; onRefresh: () => void }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name_mm: '',
+    name_en: '',
+    price: '',
+    category: 'BBQ & Skewers',
+    description: ''
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      if (editingItem) {
+        setFormData({
+          name_mm: editingItem.name_mm || '',
+          name_en: editingItem.name_en || '',
+          price: editingItem.price?.toString() || '',
+          category: editingItem.category || 'BBQ & Skewers',
+          description: editingItem.description || ''
+        });
+        setImagePreview(editingItem.image_url || null);
+      } else {
+        setFormData({ name_mm: '', name_en: '', price: '', category: 'BBQ & Skewers', description: '' });
+        setImagePreview(null);
+      }
+      setSuccess(false);
+    }
+  }, [isOpen, editingItem]);
 
   if (!isOpen) return null;
 
@@ -50,29 +75,36 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not logged in");
 
-      const target = e.target as any;
-      const newItem = {
+      const itemPayload = {
         vendor_id: userData.user.id,
-        name_mm: target[1].value, // 0 is image input, 1 is name_mm
-        name_en: target[2].value,
-        price: parseFloat(target[3].value),
-        category: target[4].value,
-        description: target[5].value,
+        name_mm: formData.name_mm,
+        name_en: formData.name_en,
+        price: parseFloat(formData.price),
+        category: formData.category,
+        description: formData.description,
         image_url: imagePreview,
         is_available: true
       };
 
-      const { error } = await supabase.from('menu_items').insert([newItem]);
+      let error;
+      if (editingItem) {
+        const { error: updateError } = await supabase.from('menu_items').update(itemPayload).eq('id', editingItem.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase.from('menu_items').insert([itemPayload]);
+        error = insertError;
+      }
+
       if (error) throw error;
 
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
-        setImagePreview(null);
+        onRefresh();
         onClose();
-      }, 2000);
+      }, 1500);
     } catch (error: any) {
-      console.error("Error adding item:", error);
+      console.error("Error saving item:", error);
       alert(`Failed to save item. Error: ${error?.message || error}`);
     } finally {
       setLoading(false);
@@ -80,25 +112,27 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative animate-scale-up max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-zinc-100 sticky top-0 bg-white z-10">
-          <h3 className="text-xl font-semibold tracking-tight text-zinc-900">Add New Item</h3>
-          <button type="button" onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-md animate-fade-in">
+      <div className="bg-white/90 backdrop-blur-xl w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border border-white/50 relative animate-scale-up max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-zinc-200/50 sticky top-0 bg-white/80 backdrop-blur-md z-10">
+          <h3 className="text-xl font-bold tracking-tight text-zinc-900">
+            {editingItem ? 'Edit Item' : 'Add New Item'}
+          </h3>
+          <button type="button" onClick={onClose} className="p-2 hover:bg-zinc-200/50 rounded-full transition-colors">
             <X className="w-5 h-5 text-zinc-500" />
           </button>
         </div>
         {success ? (
           <div className="p-12 flex flex-col items-center justify-center text-center">
             <CheckCircle2 className="w-16 h-16 text-emerald-500 mb-4 animate-scale-up" />
-            <h4 className="text-xl font-semibold text-zinc-900 mb-2">Item Added Successfully!</h4>
-            <p className="text-sm text-zinc-500">The new item has been added to your menu.</p>
+            <h4 className="text-xl font-semibold text-zinc-900 mb-2">Success!</h4>
+            <p className="text-sm text-zinc-500">Item has been {editingItem ? 'updated' : 'added'} to your menu.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Food Photo</label>
-              <div className="relative w-full h-40 border-2 border-dashed border-zinc-200 rounded-2xl bg-zinc-50 flex flex-col items-center justify-center overflow-hidden hover:bg-zinc-100 transition-colors cursor-pointer group">
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Food Photo</label>
+              <div className="relative w-full h-40 border-2 border-dashed border-zinc-300 rounded-2xl bg-white/50 flex flex-col items-center justify-center overflow-hidden hover:bg-zinc-50 transition-colors cursor-pointer group">
                 <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
                 {imagePreview ? (
                   <img src={imagePreview} alt="Preview" className="w-full h-full object-cover animate-fade-in" />
@@ -106,29 +140,28 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
                   <div className="flex flex-col items-center text-zinc-400 group-hover:text-zinc-600 transition-colors pointer-events-none">
                     <UploadCloud className="w-8 h-8 mb-2" />
                     <span className="text-sm font-medium">Click or drag photo here</span>
-                    <span className="text-xs mt-1 opacity-70">JPG, PNG up to 5MB</span>
                   </div>
                 )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Food Name (MM)</label>
-                <input type="text" required placeholder="ဥပမာ - ကြေးအိုး" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Name (MM)</label>
+                <input type="text" required value={formData.name_mm} onChange={e => setFormData({...formData, name_mm: e.target.value})} placeholder="ဥပမာ - ကြေးအိုး" className="w-full bg-white/50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Food Name (TH/EN)</label>
-                <input type="text" placeholder="e.g. Tom Yum" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Name (EN/TH)</label>
+                <input type="text" value={formData.name_en} onChange={e => setFormData({...formData, name_en: e.target.value})} placeholder="e.g. Tom Yum" className="w-full bg-white/50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Price (Baht)</label>
-                <input type="number" required placeholder="฿" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Price (Baht)</label>
+                <input type="number" required value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} placeholder="฿" className="w-full bg-white/50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Category</label>
-                <select className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Category</label>
+                <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-white/50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all">
                   <option>BBQ & Skewers</option>
                   <option>Mala & Spicy</option>
                   <option>Thai Favorites</option>
@@ -137,13 +170,13 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Description</label>
-              <textarea rows={3} placeholder="Brief description of the food..." className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"></textarea>
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Description</label>
+              <textarea rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Brief description..." className="w-full bg-white/50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none transition-all"></textarea>
             </div>
-            <div className="pt-4 border-t border-zinc-100 flex justify-end gap-3 sticky bottom-0 bg-white">
-              <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-colors">Cancel</button>
-              <button type="submit" disabled={loading} className="px-8 py-3 bg-zinc-900 text-white text-sm font-semibold rounded-xl hover:bg-zinc-800 transition-colors shadow-lg shadow-zinc-900/20 disabled:opacity-50">
-                {loading ? 'Uploading...' : 'Save Item'}
+            <div className="pt-4 border-t border-zinc-200/50 flex justify-end gap-3 sticky bottom-0 bg-white/80 backdrop-blur-md">
+              <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-bold text-zinc-600 hover:bg-zinc-200/50 rounded-xl transition-colors">Cancel</button>
+              <button type="submit" disabled={loading} className="px-8 py-3 bg-zinc-900 text-white text-sm font-bold rounded-xl hover:bg-zinc-800 hover:shadow-lg hover:shadow-zinc-900/20 transition-all disabled:opacity-50">
+                {loading ? 'Saving...' : 'Save Item'}
               </button>
             </div>
           </form>
@@ -154,7 +187,7 @@ function AddItemModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
 }
 
 // Modal for Editing Store Profile
-function EditStoreModal({ isOpen, onClose, initialData }: { isOpen: boolean; onClose: () => void; initialData?: any }) {
+function EditStoreModal({ isOpen, onClose, initialData, onRefresh }: { isOpen: boolean; onClose: () => void; initialData?: any; onRefresh: () => void }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [storeName, setStoreName] = useState('');
@@ -172,6 +205,7 @@ function EditStoreModal({ isOpen, onClose, initialData }: { isOpen: boolean; onC
 
   if (!isOpen) return null;
 
+  // ... (image change logic omitted for brevity, reusing same as before)
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -203,7 +237,6 @@ function EditStoreModal({ isOpen, onClose, initialData }: { isOpen: boolean; onC
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not logged in");
@@ -222,8 +255,9 @@ function EditStoreModal({ isOpen, onClose, initialData }: { isOpen: boolean; onC
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
+        onRefresh();
         onClose();
-      }, 2000);
+      }, 1500);
     } catch (error: any) {
       console.error("Error saving profile:", error);
       alert(`Failed to save profile. Error: ${error?.message || error}`);
@@ -232,12 +266,31 @@ function EditStoreModal({ isOpen, onClose, initialData }: { isOpen: boolean; onC
     }
   };
 
+  const handleDeleteProfile = async () => {
+    if (window.confirm("Are you sure you want to delete your entire store profile? This will permanently delete all your menu items as well.")) {
+      setLoading(true);
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user) {
+          await supabase.from('vendors').delete().eq('id', userData.user.id);
+          onRefresh();
+          onClose();
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Failed to delete profile.");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative animate-scale-up max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-zinc-100 sticky top-0 bg-white z-10">
-          <h3 className="text-xl font-semibold tracking-tight text-zinc-900">Edit Store Profile</h3>
-          <button type="button" onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-md animate-fade-in">
+      <div className="bg-white/90 backdrop-blur-xl w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border border-white/50 relative animate-scale-up max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-zinc-200/50 sticky top-0 bg-white/80 backdrop-blur-md z-10">
+          <h3 className="text-xl font-bold tracking-tight text-zinc-900">Store Settings</h3>
+          <button type="button" onClick={onClose} className="p-2 hover:bg-zinc-200/50 rounded-full transition-colors">
             <X className="w-5 h-5 text-zinc-500" />
           </button>
         </div>
@@ -245,13 +298,12 @@ function EditStoreModal({ isOpen, onClose, initialData }: { isOpen: boolean; onC
           <div className="p-12 flex flex-col items-center justify-center text-center">
             <CheckCircle2 className="w-16 h-16 text-emerald-500 mb-4 animate-scale-up" />
             <h4 className="text-xl font-semibold text-zinc-900 mb-2">Profile Updated!</h4>
-            <p className="text-sm text-zinc-500">Your store information has been saved successfully.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Store Photo / Logo</label>
-              <div className="relative w-full h-40 border-2 border-dashed border-zinc-200 rounded-2xl bg-zinc-50 flex flex-col items-center justify-center overflow-hidden hover:bg-zinc-100 transition-colors cursor-pointer group">
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Store Photo / Logo</label>
+              <div className="relative w-full h-40 border-2 border-dashed border-zinc-300 rounded-2xl bg-white/50 flex flex-col items-center justify-center overflow-hidden hover:bg-zinc-50 transition-colors cursor-pointer group">
                 <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
                 {imagePreview ? (
                   <img src={imagePreview} alt="Preview" className="w-full h-full object-cover animate-fade-in" />
@@ -264,18 +316,23 @@ function EditStoreModal({ isOpen, onClose, initialData }: { isOpen: boolean; onC
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Store Name</label>
-              <input type="text" required value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="e.g. Mae Sot BBQ Master" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Store Name</label>
+              <input type="text" required value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="e.g. Mae Sot BBQ Master" className="w-full bg-white/50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Store Description / Zone</label>
-              <input type="text" value={storeZone} onChange={(e) => setStoreZone(e.target.value)} placeholder="e.g. Zone A, Stall #04" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Store Description / Zone</label>
+              <input type="text" value={storeZone} onChange={(e) => setStoreZone(e.target.value)} placeholder="e.g. Zone A, Stall #04" className="w-full bg-white/50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all" />
             </div>
-            <div className="pt-4 border-t border-zinc-100 flex justify-end gap-3 sticky bottom-0 bg-white">
-              <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-colors">Cancel</button>
-              <button type="submit" disabled={loading} className="px-8 py-3 bg-zinc-900 text-white text-sm font-semibold rounded-xl hover:bg-zinc-800 transition-colors shadow-lg shadow-zinc-900/20 disabled:opacity-50">
-                {loading ? 'Saving...' : 'Save Profile'}
+            <div className="pt-6 border-t border-zinc-200/50 flex justify-between items-center sticky bottom-0 bg-white/80 backdrop-blur-md">
+              <button type="button" onClick={handleDeleteProfile} className="text-xs font-bold text-red-500 hover:text-red-700 hover:underline px-2 flex items-center gap-1">
+                <Trash2 className="w-3.5 h-3.5" /> Delete Profile
               </button>
+              <div className="flex gap-3">
+                <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-bold text-zinc-600 hover:bg-zinc-200/50 rounded-xl transition-colors">Cancel</button>
+                <button type="submit" disabled={loading} className="px-8 py-3 bg-amber-500 text-white text-sm font-bold rounded-xl hover:bg-amber-600 hover:shadow-lg hover:shadow-amber-500/20 transition-all disabled:opacity-50">
+                  {loading ? 'Saving...' : 'Save Profile'}
+                </button>
+              </div>
             </div>
           </form>
         )}
@@ -291,24 +348,15 @@ export default function VendorDashboard() {
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
   const [storeInfo, setStoreInfo] = useState<any>(null);
   const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const router = useRouter();
 
   const fetchData = async (userId: string) => {
-    // Fetch store profile
-    const { data: vendorData } = await supabase
-      .from('vendors')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    if (vendorData) setStoreInfo(vendorData);
+    const { data: vendorData } = await supabase.from('vendors').select('*').eq('id', userId).single();
+    setStoreInfo(vendorData || null);
 
-    // Fetch menu items
-    const { data: itemsData } = await supabase
-      .from('menu_items')
-      .select('*')
-      .eq('vendor_id', userId)
-      .order('created_at', { ascending: false });
-    if (itemsData) setMenuItems(itemsData);
+    const { data: itemsData } = await supabase.from('menu_items').select('*').eq('vendor_id', userId).order('created_at', { ascending: false });
+    setMenuItems(itemsData || []);
   };
 
   useEffect(() => {
@@ -325,37 +373,62 @@ export default function VendorDashboard() {
     checkUser();
   }, [router]);
 
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    setIsStoreModalOpen(false);
-    if (user) fetchData(user.id);
-  };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/vendor/login');
   };
 
+  const handleDeleteItem = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this item?")) {
+      await supabase.from('menu_items').delete().eq('id', id);
+      if (user) fetchData(user.id);
+    }
+  };
+
+  const openEditModal = (item: any) => {
+    setEditingItem(item);
+    setIsModalOpen(true);
+  };
+
+  const openAddModal = () => {
+    setEditingItem(null);
+    setIsModalOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-        <div className="w-8 h-8 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin"></div>
+        <div className="w-10 h-10 border-4 border-amber-200 border-t-amber-500 rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-zinc-200 selection:text-zinc-900">
+    <div className="min-h-screen bg-zinc-50 relative overflow-hidden text-zinc-900 font-sans selection:bg-amber-200 selection:text-zinc-900 z-0">
       
+      {/* Background Ambient Mesh */}
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-gradient-to-tr from-amber-400/20 to-orange-500/10 blur-[120px] -z-10 animate-pulse mix-blend-multiply"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-bl from-rose-400/20 to-amber-300/10 blur-[100px] -z-10 mix-blend-multiply"></div>
+
       {/* Modals */}
-      <AddItemModal isOpen={isModalOpen} onClose={handleModalClose} />
-      <EditStoreModal isOpen={isStoreModalOpen} onClose={handleModalClose} initialData={storeInfo} />
+      <ManageItemModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        editingItem={editingItem}
+        onRefresh={() => user && fetchData(user.id)}
+      />
+      <EditStoreModal 
+        isOpen={isStoreModalOpen} 
+        onClose={() => setIsStoreModalOpen(false)} 
+        initialData={storeInfo} 
+        onRefresh={() => user && fetchData(user.id)}
+      />
 
       {/* Dashboard Top Nav */}
-      <header className="bg-white border-b border-zinc-200 px-6 py-4 sticky top-0 z-30">
+      <header className="bg-white/70 backdrop-blur-xl border-b border-white/50 px-6 py-4 sticky top-0 z-30 shadow-sm shadow-zinc-100/50">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-zinc-900 text-white rounded-xl flex items-center justify-center overflow-hidden">
+            <div className="w-11 h-11 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-2xl flex items-center justify-center overflow-hidden shadow-lg shadow-amber-500/20">
               {storeInfo?.store_image_url ? (
                 <img src={storeInfo.store_image_url} alt="Logo" className="w-full h-full object-cover" />
               ) : (
@@ -363,20 +436,20 @@ export default function VendorDashboard() {
               )}
             </div>
             <div>
-              <h1 className="text-lg font-semibold tracking-tight leading-none">
+              <h1 className="text-xl font-bold tracking-tight leading-none text-zinc-800">
                 {storeInfo?.store_name || 'Vendor Portal'}
               </h1>
-              <p className="text-[10px] text-zinc-400 font-medium uppercase tracking-widest mt-1">MaeSot Market</p>
+              <p className="text-[10px] text-amber-600 font-bold uppercase tracking-widest mt-1">MaeSot Market</p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-zinc-500 hidden sm:inline-block">
+            <span className="text-sm font-semibold text-zinc-600 hidden sm:inline-block bg-white/50 px-3 py-1.5 rounded-full border border-white">
               {user?.email}
             </span>
             <button 
               onClick={handleLogout}
-              className="p-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-colors"
+              className="p-2.5 bg-white/50 border border-white hover:bg-white text-zinc-400 hover:text-red-500 rounded-full transition-all shadow-sm"
               title="Logout"
             >
               <LogOut className="w-5 h-5" />
@@ -386,16 +459,16 @@ export default function VendorDashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-6 py-10">
+      <main className="max-w-6xl mx-auto px-6 py-10 pb-24">
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-10 gap-4 animate-fade-in-up">
           <div>
-            <h2 className="text-3xl font-semibold tracking-tight">Overview</h2>
-            <p className="text-zinc-500 text-sm mt-1">Manage your store menu and items</p>
+            <h2 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 to-zinc-600">Overview</h2>
+            <p className="text-zinc-500 text-sm mt-1 font-medium">Manage your store menu and settings</p>
           </div>
           <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-zinc-900 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:scale-105 transition-transform shadow-lg shadow-zinc-900/20"
+            onClick={openAddModal}
+            className="flex items-center gap-2 bg-gradient-to-r from-zinc-900 to-zinc-800 text-white px-6 py-3 rounded-full text-sm font-bold hover:scale-105 transition-all shadow-lg shadow-zinc-900/20 border border-zinc-700"
           >
             <Plus className="w-4 h-4" />
             <span>Add New Item</span>
@@ -404,82 +477,107 @@ export default function VendorDashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12 animate-fade-in-up delay-100">
-          <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md cursor-pointer">
-            <div className="w-10 h-10 bg-zinc-50 text-zinc-900 rounded-full flex items-center justify-center mb-4">
-              <Package className="w-5 h-5" />
+          <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[2rem] border border-white/60 shadow-xl shadow-zinc-200/40 transition-transform hover:-translate-y-1 hover:bg-white cursor-default group">
+            <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+              <Package className="w-6 h-6" />
             </div>
-            <h3 className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mb-1">Active Items</h3>
-            <p className="text-3xl font-semibold">{menuItems.length}</p>
+            <h3 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Active Items</h3>
+            <p className="text-4xl font-extrabold text-zinc-800">{menuItems.length}</p>
           </div>
           
-          <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md cursor-pointer">
-            <div className="w-10 h-10 bg-zinc-50 text-zinc-900 rounded-full flex items-center justify-center mb-4">
-              <Store className="w-5 h-5" />
+          <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[2rem] border border-white/60 shadow-xl shadow-zinc-200/40 transition-transform hover:-translate-y-1 hover:bg-white cursor-default group">
+            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+              <Store className="w-6 h-6" />
             </div>
-            <h3 className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mb-1">Store Status</h3>
+            <h3 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Store Status</h3>
             <div className="flex items-center gap-2 mt-2">
-              <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${storeInfo?.is_open !== false ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
-              <p className="text-sm font-medium">{storeInfo?.is_open !== false ? 'Open / ဖွင့်သည်' : 'Closed / ပိတ်သည်'}</p>
+              <div className={`w-3 h-3 rounded-full shadow-sm ${storeInfo?.is_open !== false ? 'bg-emerald-500 shadow-emerald-500/50 animate-pulse' : 'bg-red-500 shadow-red-500/50'}`}></div>
+              <p className="text-sm font-bold text-zinc-700">{storeInfo?.is_open !== false ? 'Open / ဖွင့်သည်' : 'Closed / ပိတ်သည်'}</p>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md cursor-pointer">
-            <div className="w-10 h-10 bg-zinc-50 text-zinc-900 rounded-full flex items-center justify-center mb-4">
-              <Settings className="w-5 h-5" />
+          <div 
+            onClick={() => setIsStoreModalOpen(true)}
+            className="bg-white/80 backdrop-blur-xl p-6 rounded-[2rem] border border-white/60 shadow-xl shadow-zinc-200/40 transition-all hover:-translate-y-1 hover:bg-white hover:shadow-2xl hover:shadow-amber-500/10 cursor-pointer group flex flex-col"
+          >
+            <div className="w-12 h-12 bg-zinc-100 text-zinc-600 rounded-2xl flex items-center justify-center mb-5 group-hover:rotate-45 transition-transform duration-300">
+              <Settings className="w-6 h-6" />
             </div>
-            <h3 className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mb-1">Settings</h3>
-            <span 
-              onClick={() => setIsStoreModalOpen(true)}
-              className="text-sm font-medium text-blue-600 hover:underline"
-            >
-              Edit Store Profile &rarr;
-            </span>
+            <h3 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Settings</h3>
+            <div className="mt-auto flex items-center justify-between text-amber-600">
+              <span className="text-sm font-bold">Edit Profile</span>
+              <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+            </div>
           </div>
         </div>
 
         {/* Items List */}
-        {menuItems.length > 0 ? (
+        {!storeInfo ? (
+          <div className="bg-amber-50/80 backdrop-blur-md rounded-[2.5rem] border border-amber-200/50 p-12 text-center animate-fade-in-up delay-200 shadow-xl shadow-amber-500/5">
+            <div className="w-20 h-20 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="w-10 h-10" />
+            </div>
+            <h3 className="text-xl font-bold text-amber-900 mb-2">Welcome to Vendor Portal</h3>
+            <p className="text-amber-700/80 text-sm max-w-md mx-auto mb-8 font-medium">
+              ကျေးဇူးပြု၍ "Edit Store Profile" သို့ဝင်ရောက်ပြီး သင့်ဆိုင်၏ အချက်အလက်များကို အရင်ဆုံး ဖြည့်စွက်ပေးပါ။
+            </p>
+            <button 
+              onClick={() => setIsStoreModalOpen(true)}
+              className="inline-flex items-center gap-2 bg-amber-500 text-white px-8 py-3 rounded-full text-sm font-bold hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/30 hover:scale-105"
+            >
+              <Settings className="w-4 h-4" />
+              <span>Setup Store Profile</span>
+            </button>
+          </div>
+        ) : menuItems.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-fade-in-up delay-200">
             {menuItems.map((item) => (
-              <div key={item.id} className="bg-white rounded-3xl border border-zinc-100 overflow-hidden shadow-sm hover:shadow-md transition-all group flex flex-col">
+              <div key={item.id} className="bg-white/80 backdrop-blur-lg rounded-3xl border border-white/60 overflow-hidden shadow-xl shadow-zinc-200/30 hover:shadow-2xl hover:shadow-amber-500/10 hover:-translate-y-1 transition-all group flex flex-col">
                 <div className="relative h-48 bg-zinc-100 overflow-hidden shrink-0">
                   {item.image_url ? (
-                    <img src={item.image_url} alt={item.name_mm} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={item.image_url} alt={item.name_mm} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-zinc-300">No Image</div>
+                    <div className="w-full h-full flex items-center justify-center text-zinc-300 bg-zinc-50">No Image</div>
                   )}
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-zinc-900 shadow-sm">
+                  <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-black text-zinc-900 shadow-lg border border-white/50">
                     ฿{item.price}
                   </div>
                 </div>
                 <div className="p-5 flex-grow flex flex-col">
-                  <h3 className="font-semibold text-lg text-zinc-900 truncate mb-1">{item.name_mm}</h3>
-                  {item.name_en && <p className="text-xs text-zinc-500 truncate mb-3">{item.name_en}</p>}
+                  <h3 className="font-bold text-lg text-zinc-900 truncate mb-1">{item.name_mm}</h3>
+                  {item.name_en && <p className="text-xs font-medium text-zinc-500 truncate mb-4">{item.name_en}</p>}
                   
-                  <div className="flex items-center justify-between pt-3 border-t border-zinc-50 mt-auto">
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-zinc-100 text-zinc-600 rounded-md">
+                  <div className="flex items-center justify-between pt-4 border-t border-zinc-100 mt-auto">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 bg-amber-50 text-amber-600 rounded-md">
                       {item.category || 'Food'}
                     </span>
-                    <button className="text-xs font-semibold text-blue-600 hover:underline">Edit</button>
+                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => openEditModal(item)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteItem(item.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-[2.5rem] border border-zinc-100 p-12 text-center animate-fade-in-up delay-200">
-            <div className="w-20 h-20 bg-zinc-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Package className="w-8 h-8 text-zinc-300" />
+          <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-12 text-center animate-fade-in-up delay-200 shadow-xl shadow-zinc-200/40">
+            <div className="w-24 h-24 bg-zinc-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <Package className="w-10 h-10 text-zinc-300" />
             </div>
-            <h3 className="text-xl font-semibold text-zinc-900 mb-2">No items yet</h3>
-            <p className="text-zinc-500 text-sm max-w-md mx-auto mb-8">
+            <h3 className="text-2xl font-bold text-zinc-900 mb-2">No items yet</h3>
+            <p className="text-zinc-500 text-sm max-w-md mx-auto mb-8 font-medium leading-relaxed">
               ဟင်းလျာများ မတင်ရသေးပါ။ သင့်ဆိုင်၏ Menu များကို စတင်ထည့်သွင်းပြီး Customer များထံ ရောင်းချလိုက်ပါ။
             </p>
             <button 
-              onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-900 px-6 py-3 rounded-full text-sm font-semibold hover:bg-zinc-200 transition-colors"
+              onClick={openAddModal}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-400 to-orange-500 text-white px-8 py-3.5 rounded-full text-sm font-bold hover:shadow-lg hover:shadow-amber-500/30 hover:scale-105 transition-all"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
               <span>Create First Item</span>
             </button>
           </div>
