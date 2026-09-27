@@ -272,13 +272,15 @@ function EditStoreModal({ isOpen, onClose, initialData, onRefresh }: { isOpen: b
       try {
         const { data: userData } = await supabase.auth.getUser();
         if (userData.user) {
-          await supabase.from('vendors').delete().eq('id', userData.user.id);
+          const { error } = await supabase.from('vendors').delete().eq('id', userData.user.id);
+          if (error) throw error;
+          
           onRefresh();
           onClose();
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
-        alert("Failed to delete profile.");
+        alert(`Failed to delete profile. Error: ${err?.message || JSON.stringify(err)}`);
       } finally {
         setLoading(false);
       }
@@ -352,10 +354,12 @@ export default function VendorDashboard() {
   const router = useRouter();
 
   const fetchData = async (userId: string) => {
-    const { data: vendorData } = await supabase.from('vendors').select('*').eq('id', userId).single();
+    const { data: vendorData, error: vendorError } = await supabase.from('vendors').select('*').eq('id', userId).maybeSingle();
+    if (vendorError) console.error("Vendor fetch error:", vendorError);
     setStoreInfo(vendorData || null);
 
-    const { data: itemsData } = await supabase.from('menu_items').select('*').eq('vendor_id', userId).order('created_at', { ascending: false });
+    const { data: itemsData, error: itemsError } = await supabase.from('menu_items').select('*').eq('vendor_id', userId).order('created_at', { ascending: false });
+    if (itemsError) console.error("Items fetch error:", itemsError);
     setMenuItems(itemsData || []);
   };
 
