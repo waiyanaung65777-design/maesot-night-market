@@ -2,10 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { FoodItem } from '@/data/mockFoods';
 
 interface FoodModalProps {
-  item: FoodItem | null;
+  item: any;
   currentLang: 'en' | 'mm' | 'th';
   onClose: () => void;
 }
@@ -29,22 +28,17 @@ export default function FoodModal({ item, currentLang, onClose }: FoodModalProps
 
   if (!item && !isVisible) return null;
   
-  // Guard against null item during exit animation
-  const displayItem = item || ({} as FoodItem);
+  const displayItem = item || {};
 
-  const title =
-    currentLang === 'mm'
-      ? displayItem.titleMm
-      : currentLang === 'th'
-      ? displayItem.titleTh
-      : displayItem.titleEn;
-
-  const desc = currentLang === 'mm' ? displayItem.descMm : displayItem.descEn;
-  const ingredients = currentLang === 'mm' ? displayItem.ingredientsMm : displayItem.ingredientsEn;
+  const title = currentLang === 'mm' ? (displayItem.name_mm || displayItem.name_en) : (displayItem.name_en || displayItem.name_mm);
+  const desc = displayItem.description || '';
+  const stallName = displayItem.vendors?.store_name || 'Mae Sot Market';
+  const stallZone = displayItem.vendors?.store_zone || '';
+  const priceThb = displayItem.price || 0;
 
   return (
     <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-      item ? 'bg-zinc-900/20 backdrop-blur-sm' : 'bg-transparent pointer-events-none'
+      item ? 'bg-zinc-900/40 backdrop-blur-sm' : 'bg-transparent pointer-events-none'
     }`}>
       
       <div 
@@ -53,18 +47,22 @@ export default function FoodModal({ item, currentLang, onClose }: FoodModalProps
         }`}
       >
         {/* Minimal Header */}
-        <div className="relative h-64 bg-zinc-50 flex items-center justify-center text-8xl select-none">
+        <div className="relative h-64 bg-zinc-100 flex items-center justify-center select-none overflow-hidden">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white text-zinc-900 flex items-center justify-center shadow-sm hover:scale-105 transition-transform cursor-pointer"
+            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md text-zinc-900 flex items-center justify-center shadow-sm hover:scale-105 transition-transform cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
           
-          <span className="drop-shadow-sm animate-scale-up">{displayItem.emoji}</span>
+          {displayItem.image_url ? (
+            <img src={displayItem.image_url} alt={title} className="w-full h-full object-cover animate-fade-in" />
+          ) : (
+            <div className="text-zinc-300 font-medium">No Image</div>
+          )}
           
-          <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-[10px] font-bold text-zinc-900 shadow-sm">
-            ★ {displayItem.rating} <span className="text-zinc-400 font-normal">({displayItem.reviewsCount})</span>
+          <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-[10px] font-bold text-zinc-900 shadow-sm uppercase tracking-wider">
+            {displayItem.category || 'Food'}
           </div>
         </div>
 
@@ -74,43 +72,28 @@ export default function FoodModal({ item, currentLang, onClose }: FoodModalProps
             <h3 className="text-2xl font-semibold text-zinc-900 leading-tight tracking-tight">
               {title}
             </h3>
-            <span className="text-xl font-medium text-zinc-900">฿{displayItem.priceThb}</span>
+            <span className="text-xl font-medium text-zinc-900">฿{priceThb}</span>
           </div>
 
-          <p className="text-sm text-zinc-500 font-light leading-relaxed mb-8">
-            {desc}
-          </p>
+          {desc && (
+            <p className="text-sm text-zinc-500 font-light leading-relaxed mb-8">
+              {desc}
+            </p>
+          )}
 
           {/* Minimal Info List */}
           <div className="space-y-4 mb-8">
             <div className="flex justify-between border-b border-zinc-100 pb-3">
               <span className="text-xs text-zinc-400 uppercase tracking-wider font-semibold">Stall</span>
-              <span className="text-sm text-zinc-900 font-medium">{displayItem.stallName}</span>
+              <span className="text-sm text-zinc-900 font-medium">{stallName}</span>
             </div>
-            <div className="flex justify-between border-b border-zinc-100 pb-3">
-              <span className="text-xs text-zinc-400 uppercase tracking-wider font-semibold">Zone</span>
-              <span className="text-sm text-zinc-900 font-medium">{displayItem.stallNo}</span>
-            </div>
-          </div>
-
-          {/* Ingredients */}
-          {ingredients && ingredients.length > 0 && (
-            <div className="mb-8">
-              <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold block mb-3">
-                Key Ingredients
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {ingredients.map((ing, i) => (
-                  <span
-                    key={i}
-                    className="text-xs px-3 py-1.5 rounded-full bg-zinc-50 text-zinc-600 font-medium"
-                  >
-                    {ing}
-                  </span>
-                ))}
+            {stallZone && (
+              <div className="flex justify-between border-b border-zinc-100 pb-3">
+                <span className="text-xs text-zinc-400 uppercase tracking-wider font-semibold">Zone</span>
+                <span className="text-sm text-zinc-900 font-medium">{stallZone}</span>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Action */}
           <button

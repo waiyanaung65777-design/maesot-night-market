@@ -1,38 +1,42 @@
 'use client';
 
 import React from 'react';
-import { FoodItem } from '@/data/mockFoods';
 
 interface FoodCardProps {
-  item: FoodItem;
+  item: any;
   currentLang: 'en' | 'mm' | 'th';
   onClick: () => void;
 }
 
 export default function FoodCard({ item, currentLang, onClick }: FoodCardProps) {
-  const title =
-    currentLang === 'mm'
-      ? item.titleMm
-      : currentLang === 'th'
-      ? item.titleTh
-      : item.titleEn;
-
-  const desc = currentLang === 'mm' ? item.descMm : item.descEn;
+  const title = currentLang === 'mm' ? (item.name_mm || item.name_en) : (item.name_en || item.name_mm);
+  const desc = item.description || '';
+  const stallName = item.vendors?.store_name || 'Mae Sot Market';
+  const priceThb = item.price || 0;
+  const priceMmk = priceThb * 120; // Approx exchange rate
 
   return (
     <div
       onClick={onClick}
       className="group flex flex-col cursor-pointer animate-fade-in-up"
     >
-      {/* Sleek Minimalist Image Placeholder */}
+      {/* Sleek Minimalist Image / Photo */}
       <div className="relative w-full aspect-[4/3] bg-zinc-100 rounded-3xl overflow-hidden mb-4 transition-all duration-500 group-hover:shadow-2xl group-hover:shadow-zinc-200/50">
-        <div className="absolute inset-0 flex items-center justify-center text-7xl transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-110 select-none">
-          {item.emoji}
-        </div>
+        {item.image_url ? (
+          <img 
+            src={item.image_url} 
+            alt={title} 
+            className="w-full h-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-110" 
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-zinc-300 text-sm font-medium transition-transform duration-700 group-hover:scale-110 select-none bg-zinc-50">
+            No Image
+          </div>
+        )}
         
-        {/* Subtle Rating */}
-        <div className="absolute top-4 left-4 bg-white/80 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-zinc-900 shadow-sm">
-          ★ {item.rating}
+        {/* Subtle Tag */}
+        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-zinc-900 shadow-sm uppercase tracking-wider">
+          {item.category || 'Food'}
         </div>
       </div>
 
@@ -43,20 +47,22 @@ export default function FoodCard({ item, currentLang, onClick }: FoodCardProps) 
             {title}
           </h4>
           <span className="text-sm font-medium text-zinc-900 shrink-0">
-            ฿{item.priceThb}
+            ฿{priceThb}
           </span>
         </div>
         
-        <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed mb-4 font-light">
-          {desc}
-        </p>
+        {desc && (
+          <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed mb-4 font-light">
+            {desc}
+          </p>
+        )}
 
         <div className="mt-auto flex items-center justify-between border-t border-zinc-100 pt-3">
-          <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">
-            {item.stallName}
+          <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold truncate max-w-[60%]">
+            {stallName}
           </span>
           <span className="text-[10px] text-zinc-400">
-            {item.priceMmk.toLocaleString()} Ks
+            ~{priceMmk.toLocaleString()} Ks
           </span>
         </div>
       </div>
