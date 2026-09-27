@@ -25,6 +25,8 @@ export default function Home() {
   useEffect(() => {
     const fetchFoods = async () => {
       setLoading(true);
+
+      // First try with vendors join
       const { data, error } = await supabase
         .from('menu_items')
         .select('*, vendors(store_name, store_zone, store_image_url, is_open)')
@@ -32,10 +34,23 @@ export default function Home() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching foods:', error);
+        console.error('Error fetching foods (with join):', error);
+        // Fallback: try without vendors join
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('menu_items')
+          .select('*')
+          .eq('is_available', true)
+          .order('created_at', { ascending: false });
+
+        if (fallbackError) {
+          console.error('Error fetching foods (fallback):', fallbackError);
+        } else {
+          setFoods(fallbackData || []);
+        }
       } else {
         setFoods(data || []);
       }
+
       setLoading(false);
     };
 
